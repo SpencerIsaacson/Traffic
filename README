@@ -1,2 +1,3 @@
-
 To run the test suite, just run `make test` from the source folder (or alternatively, `traffic --test`).
+
+This code runs on both Windows and Linux.
