@@ -1,3 +1,5 @@
+The actual implementation of the state machine is in `traffic.h`, whereas `traffic.c` is just client clode to interact with and display the internal state.
+
 To run the test suite, just run `make test` from the source folder (or alternatively, `traffic --test`).
 
 This code runs on both Windows and Linux.
