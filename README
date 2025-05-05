@@ -1,2 +1,2 @@
 
-To run the test suite, just run ``make test`` from the source folder (or alternatively, ``traffic --test``).
+To run the test suite, just run `make test` from the source folder (or alternatively, `traffic --test`).
