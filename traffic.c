@@ -78,12 +78,13 @@ void printersection(Intersection *intersection) {
 
 int main(int argc, char **argv) {
 	enable_ansi_codes();
-	clear_console();
 	if(argc > 1 && strcmp(argv[1], "--test") == 0) {
 		run_test_suite();
 		return (tests_run - tests_passed);
 	}
 	else {
+		clear_console();
+
 		while(1) {
 			static clock_t last_print = 0;
 			if((clock()-last_print) > (CLOCKS_PER_SEC/10)){
