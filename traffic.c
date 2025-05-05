@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -35,7 +36,6 @@ void set_cursor_position(unsigned char x, unsigned char y) {
 }
 
 
-
 void enable_ansi_codes() {
 #ifdef _WIN32
 #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
@@ -49,7 +49,7 @@ void enable_ansi_codes() {
 #endif
 }
 
-#define FANCY_PRINT 0
+#define FANCY_PRINT 1
 
 /*
 	Note: ansi codes and color printing are failing in my cywgin and peppermint linux terminals, but
@@ -76,6 +76,8 @@ void printersection(Intersection *intersection) {
 	printf("%s",light_state_ansi_lookup[intersection->lights[Direction_EastWest]]);
 	set_cursor_position(12, 6);
 	printf("%s",light_state_ansi_lookup[intersection->lights[Direction_EastWest]]);
+	printf("\n");
+	fflush(stdout);
 }
 
 int main(int argc, char **argv) {
@@ -86,15 +88,20 @@ int main(int argc, char **argv) {
 	}
 	else {
 		while(1) {
-			if(FANCY_PRINT){
+			static clock_t last_print = 0;
+			if((clock()-last_print) > (CLOCKS_PER_SEC/10)){
+#if FANCY_PRINT
 				printersection(&intersection);
-			}
-			else {
+#else
 				printf("north-south: %s, east-west: %s\n", 
 					light_state_name_lookup[intersection.lights[Direction_NorthSouth]],
 					light_state_name_lookup[intersection.lights[Direction_EastWest]]);
+#endif
+				last_print = clock();
 			}
+
 			traffic_strategy(&intersection);
+			assert(at_least_one_axis_red);
 
 #if _WIN32
 			if(GetAsyncKeyState(VK_ESCAPE)) {

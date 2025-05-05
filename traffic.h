@@ -56,23 +56,20 @@ void next_state(Intersection *intersection) {
 }
 
 //interval of each stage in milliseconds
-int intervals[LightState_count] = {
+unsigned int intervals[LightState_count] = {
 	[LightState_GREEN]  = 5000,
 	[LightState_YELLOW] = 1000,
 	[LightState_RED]    = 2500,
 };
 
-void delay_ms(int ms) {
-#ifdef _WIN32
-    Sleep(ms);
-#else
-    usleep(ms * 1000);
-#endif
-}
+clock_t previous_clock;
 
 void basic_time_strategy(Intersection *intersection) {
-	delay_ms(intervals[active_light]);
-	next_state(intersection);
+	clock_t current_clock = clock();
+	if(((current_clock - previous_clock) * 1000.0 / CLOCKS_PER_SEC) > intervals[active_light]) {
+		previous_clock = current_clock;
+		next_state(intersection);
+	}
 }
 
 #undef active_light

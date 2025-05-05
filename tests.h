@@ -92,12 +92,15 @@ bool other_axis_turns_green_after_all_lights_red() {
 	return (intersection.active_direction != last_active) && (intersection.lights[intersection.active_direction] == LightState_GREEN);
 }
 
+bool at_least_one_axis_red() {
+	return (intersection.lights[Direction_NorthSouth] == LightState_RED) || (intersection.lights[Direction_EastWest] == LightState_RED);
+}
+
 /* Ensure that after many iterations, north-south and east-west never allow cars to pass at the same time */
 bool at_least_one_axis_always_red() {
 	for (int i = 0; i < 100000; ++i) {
-		if((intersection.lights[Direction_NorthSouth] != LightState_RED) && (intersection.lights[Direction_EastWest] != LightState_RED)) {
+		if(!at_least_one_axis_red())
 			return false;
-		}
 	}
 
 	return true;
