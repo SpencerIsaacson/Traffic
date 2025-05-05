@@ -22,14 +22,21 @@ typedef enum {
 	We could have a separate value for every light, but since there are no protected turns at this intersection, 
 	it's more reliable to have lights that are on a shared axis	share a signal so there's no possibility of them
 	getting out of sync with one another. So east-west share a single signal, and north-south share a signal.
+	In a real system you might even want to enumerate all intersection states such that it's literally not possible 
+	to encode an "invalid" state, such as green going both ways.
 */
 typedef struct {
 	LightState lights[Direction_count];
 	Direction active_direction;
 } Intersection;
 
+/*
+	Basic state is declared in global scope, though most functions still take a pointer to an intersection
+	On the assumption that you might extend this to support multiple intersections.
+*/
 bool inited;
 Intersection intersection;
+
 
 /* This is technically not needed on program startup, as globally scoped items have static storage,
 and are automatically zeroed out, but it's useful for reseting the intersection at runtime.*/

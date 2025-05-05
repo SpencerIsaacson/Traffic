@@ -51,13 +51,9 @@ void enable_ansi_codes() {
 
 #define FANCY_PRINT 1
 
-/*
-	Note: ansi codes and color printing are failing in my cywgin and peppermint linux terminals, but
-	it works perfectly in my normal Windows 10 cmd terminal
-*/
 /*for the pun of it*/
 void printersection(Intersection *intersection) {
-	clear_console();
+	set_cursor_position(0, 0);
 	printf("Traffic State:\n");
 	set_cursor_position(7, 2);
 	printf("%s",light_state_ansi_lookup[intersection->lights[Direction_NorthSouth]]);
@@ -82,6 +78,7 @@ void printersection(Intersection *intersection) {
 
 int main(int argc, char **argv) {
 	enable_ansi_codes();
+	clear_console();
 	if(argc > 1 && strcmp(argv[1], "--test") == 0) {
 		run_test_suite();
 		return (tests_run - tests_passed);
