@@ -14,18 +14,20 @@ typedef unsigned int u32;
 #define make_color(r, g, b, a) ((Color)((a << 24) | (r << 16) | (g << 8) | b))
 #include "drawing.h"
 
+
+void poll_input();
+
+#include "simulate.h"
+
 void poll_input()
 {
-    g.input.start = GetAsyncKeyState(VK_SPACE);
-    g.input.up    = GetAsyncKeyState(VK_UP);
-    g.input.down  = GetAsyncKeyState(VK_DOWN);
-    g.input.left  = GetAsyncKeyState(VK_LEFT);
-    g.input.right = GetAsyncKeyState(VK_RIGHT);
-    g.input.fire = GetAsyncKeyState('F');
+    // g.input.start = GetAsyncKeyState(VK_SPACE);
+    // g.input.up    = GetAsyncKeyState(VK_UP);
+    // g.input.down  = GetAsyncKeyState(VK_DOWN);
+    // g.input.left  = GetAsyncKeyState(VK_LEFT);
+    // g.input.right = GetAsyncKeyState(VK_RIGHT);
+    // g.input.fire = GetAsyncKeyState('F');
 }
-
-#include "rpi/space_mission.h"
-
 
 
 bool running = true;
@@ -175,7 +177,6 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR command_
                 running = false;
 
             simulate();
-
             GetClientRect(window, &client_rect);
             window_width = client_rect.right - client_rect.left;
             window_height = client_rect.bottom - client_rect.top;            
