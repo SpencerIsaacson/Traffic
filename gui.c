@@ -14,6 +14,16 @@ typedef unsigned int u32;
 #define make_color(r, g, b, a) ((Color)((a << 24) | (r << 16) | (g << 8) | b))
 #include "drawing.h"
 
+void poll_input()
+{
+    g.input.start = GetAsyncKeyState(VK_SPACE);
+    g.input.up    = GetAsyncKeyState(VK_UP);
+    g.input.down  = GetAsyncKeyState(VK_DOWN);
+    g.input.left  = GetAsyncKeyState(VK_LEFT);
+    g.input.right = GetAsyncKeyState(VK_RIGHT);
+    g.input.fire = GetAsyncKeyState('F');
+}
+
 #include "rpi/space_mission.h"
 
 
@@ -100,7 +110,6 @@ LRESULT WindowCallback(HWND window, UINT message, WPARAM w, LPARAM l)
 
 int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR command_line, int show)
 {
-    printf("terminal test");
     WNDCLASS WindowClass = {0};
     WindowClass.style = CS_OWNDC|CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
     WindowClass.lpfnWndProc = WindowCallback;
@@ -149,6 +158,8 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR command_
             .height = H,
             .pixels = pixels,
         };
+
+        init();
         while(running)
         {
             MSG message;
@@ -162,16 +173,6 @@ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR command_
 
             if(GetAsyncKeyState(VK_ESCAPE))
                 running = false;
-
-            //poll input
-            {
-                g.input.start = GetAsyncKeyState(VK_SPACE);
-                g.input.up    = GetAsyncKeyState(VK_UP);
-                g.input.down  = GetAsyncKeyState(VK_DOWN);
-                g.input.left  = GetAsyncKeyState(VK_LEFT);
-                g.input.right = GetAsyncKeyState(VK_RIGHT);
-                g.input.fire = GetAsyncKeyState('F');
-            }
 
             simulate();
 
