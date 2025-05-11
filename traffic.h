@@ -63,23 +63,11 @@ void next_state(Intersection *intersection) {
 }
 
 //interval of each stage in milliseconds
-unsigned int intervals[LightState_count] = {
-	[LightState_GREEN]  = 5000,
-	[LightState_YELLOW] = 1000,
-	[LightState_RED]    = 2500,
+double intervals[LightState_count] = {
+	[LightState_GREEN]  = 1.5,
+	[LightState_YELLOW] = 0.85,
+	[LightState_RED]    = 2.0,
 };
-
-clock_t previous_clock;
-
-void basic_time_strategy(Intersection *intersection) {
-	clock_t current_clock = clock();
-	if(((current_clock - previous_clock) * 1000.0 / CLOCKS_PER_SEC) > intervals[active_light]) {
-		previous_clock = current_clock;
-		next_state(intersection);
-	}
-}
-
-#undef active_light
 
 /*
 	This is designed to allow extension, for instance if one were to implement a system 
@@ -88,6 +76,19 @@ void basic_time_strategy(Intersection *intersection) {
 	As it stands it just changes the lights at pre-determined intervals
 */
 typedef void FunctionType(Intersection *intersection);
+
+clock_t previous_clock;
+void basic_time_strategy(Intersection *intersection) {
+	clock_t current_clock = clock();
+	if(((current_clock - previous_clock)) > (intervals[active_light] * CLOCKS_PER_SEC)) {
+		previous_clock = current_clock;
+		next_state(intersection);
+	}
+}
+
 FunctionType *traffic_strategy = basic_time_strategy;
+
+#undef active_light
+
 
 #endif

@@ -76,38 +76,57 @@ void printersection(Intersection *intersection) {
 	fflush(stdout);
 }
 
+
+typedef enum {
+	CompassDirection_North,
+	CompassDirection_South,
+	CompassDirection_East,
+	CompassDirection_West,
+	CompassDirection_count,
+} CompassDirection;
+
+float scale[CompassDirection_count];
+
+void weight_strategy(Intersection *intersection) {
+	next_state(intersection);
+}
+
 int main(int argc, char **argv) {
 	enable_ansi_codes();
-	if(argc > 1 && strcmp(argv[1], "--test") == 0) {
-		run_test_suite();
-		return (tests_run - tests_passed);
+	for (int i = 0; i < argc; ++i) {
+		if(strcmp(argv[i], "--test") == 0) {
+			run_test_suite();
+			return (tests_run - tests_passed);
+		}
+		else if(strcmp(argv[i], "--strategy_weight") == 0) {
+			traffic_strategy = weight_strategy;
+		}
 	}
-	else {
-		clear_console();
 
-		while(1) {
-			static clock_t last_print = 0;
-			if((clock()-last_print) > (CLOCKS_PER_SEC/10)){
+	clear_console();
+
+	while(1) {
+		static clock_t last_print = 0;
+		if((clock()-last_print) > (CLOCKS_PER_SEC/10)){
 #if FANCY_PRINT
-				printersection(&intersection);
+			printersection(&intersection);
 #else
-				printf("north-south: %s, east-west: %s\n", 
-					light_state_name_lookup[intersection.lights[Direction_NorthSouth]],
-					light_state_name_lookup[intersection.lights[Direction_EastWest]]);
+			printf("north-south: %s, east-west: %s\n", 
+				light_state_name_lookup[intersection.lights[Direction_NorthSouth]],
+				light_state_name_lookup[intersection.lights[Direction_EastWest]]);
 #endif
-				last_print = clock();
-			}
+			last_print = clock();
+		}
 
-			traffic_strategy(&intersection);
-			assert(at_least_one_axis_red);
+		traffic_strategy(&intersection);
+		assert(at_least_one_axis_red);
 
 #if _WIN32
-			if(GetAsyncKeyState(VK_ESCAPE)) {
-				clear_console();
-				return 0;
-			}
-#endif			
+		if(GetAsyncKeyState(VK_ESCAPE)) {
+			clear_console();
+			return 0;
 		}
+#endif			
 	}
 
 	return 0;
