@@ -17,16 +17,16 @@ typedef unsigned int u32;
 
 void poll_input();
 
-#include "simulate.h"
+#include "rpi/space_mission.h"
 
 void poll_input()
 {
-    // g.input.start = GetAsyncKeyState(VK_SPACE);
-    // g.input.up    = GetAsyncKeyState(VK_UP);
-    // g.input.down  = GetAsyncKeyState(VK_DOWN);
-    // g.input.left  = GetAsyncKeyState(VK_LEFT);
-    // g.input.right = GetAsyncKeyState(VK_RIGHT);
-    // g.input.fire = GetAsyncKeyState('F');
+    g.input.start = GetAsyncKeyState(VK_SPACE);
+    g.input.up    = GetAsyncKeyState(VK_UP);
+    g.input.down  = GetAsyncKeyState(VK_DOWN);
+    g.input.left  = GetAsyncKeyState(VK_LEFT);
+    g.input.right = GetAsyncKeyState(VK_RIGHT);
+    g.input.fire = GetAsyncKeyState('F');
 }
 
 
