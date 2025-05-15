@@ -7,6 +7,9 @@
 #include "math.h"
 #define assert(n)
 
+
+#define RPI
+
 typedef unsigned long long size_t;
 void *memset(void *ptr, int value, size_t num) {
     unsigned char *p = (unsigned char *)ptr;
@@ -38,6 +41,8 @@ clock_t clock() {
     return get_system_timer();
 }
 
+bool back_buffer;
+#include "lfb.h"
 
 
 #define W 1024
@@ -48,15 +53,60 @@ clock_t clock() {
 void poll_input();
 #include "space_mission.h"
 void poll_input(){
-        g.input.start = !g.input.start;
-        g.input.up = !g.input.up;
-        g.input.left = !g.input.left;
-        //g.input.fire = !g.input.fire;
+#define GET_INPUTSTATE 0xFE
+    int received_char = uart_try_getc();
+    if(received_char != -1){
+        //printf("received something: %d", received_char);
+        if(received_char == GET_INPUTSTATE) {
+            uart_send(0x06); //ack value
+
+            wait_msec(300);
+            g.input.up = uart_getc();
+            uart_send(0x06); //ack value
+
+            wait_msec(300);
+            g.input.down = uart_getc();
+            uart_send(0x06); //ack value
+            
+            wait_msec(300);
+            g.input.left = uart_getc();
+            uart_send(0x06); //ack value
+            
+            wait_msec(300);
+            g.input.right = uart_getc();
+            uart_send(0x06); //ack value
+
+            wait_msec(300);
+            g.input.fire = uart_getc();
+            uart_send(0x06); //ack value
+
+            wait_msec(300);
+            g.input.start = uart_getc();
+            uart_send(0x06); //ack value
+        }
+
+        // if(received_char == GET_INPUTSTATE) {
+        //     printf("up: %d, down: %d, left: %d, right: %d, fire: %d, start: %d\n",
+        //         g.input.up,
+        //         g.input.down,
+        //         g.input.left,
+        //         g.input.right,
+        //         g.input.fire,
+        //         g.input.start
+        //     );
+        // }
+#define VK_ESCAPE 27
+        if(received_char == VK_ESCAPE) { //escape key
+            uart_send(0x06); //ack value
+            wait_msec(1500);
+            uart_send(0xFF); //alert client of shutdown
+            wait_msec(1500);
+            power_off();
+        }
+    }
 }
 
-#include "lfb.h"
 
-bool back_buffer;
 void swap_buffers()
 {
     //printf("pixels when about to swap: %d\n", draw_target.pixels);
@@ -77,7 +127,7 @@ void swap_buffers()
     if(result) {
         //printf("successful call\n");
         wait_msec(500);
-        if(!back_buffer)
+        if(back_buffer)
             draw_target.pixels=((unsigned int *)(lfb)); //don't modify draw target, modify SCREEN texture, since draw-target can point to other things
         else
             draw_target.pixels=((unsigned int *)(lfb))+(768*1024);        
@@ -95,7 +145,7 @@ u32 gamepad_state;
 void main()
 {
     uart_init();
-    printf("uart initialized\n");
+    //printf("uart initialized\n");
     lfb_init();
 
     draw_target = (Texture) {
@@ -106,39 +156,9 @@ void main()
 
     init();
     last = clock();
-#define GET_INPUTSTATE 0xFE    
+
     while(1) {
-        printf("start of main loop\n");
-        int received_char = uart_try_getc();
-        if(received_char != -1){
-            printf("received something: %d", received_char);
-            if(received_char == GET_INPUTSTATE) {
-                gamepad_state = 0;
-                printf("%x ", uart_getc());
-                printf("%x ", uart_getc());
-                printf("%x ", uart_getc());
-                printf("%x\n", uart_getc());
-                //gamepad_state = uart_getc();
-                //gamepad_state = uart_getc() | (gamepad_state << 8);
-                //gamepad_state = uart_getc() | (gamepad_state << 8);
-                //gamepad_state = uart_getc() | (gamepad_state << 8);
-            }
-            
-            uart_send(0x06); //ack value
-
-            if(received_char == GET_INPUTSTATE){
-                printf("gamepad_state: %d\n", gamepad_state);
-            }
-
-            if(received_char == 27) { //escape key
-                uart_send(0xFF); //alert client of shutdown
-                wait_msec(100000);
-                power_off();
-            }
-        }
-
         simulate();
-        printf("finished simulate function\n");
         swap_buffers();
         //printf("swapped that buffer\n");
         //printf("buffer swap completed\n");

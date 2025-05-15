@@ -1,4 +1,4 @@
-#define PROFILING_ENABLED
+//#define PROFILING_ENABLED
 #ifdef PROFILING_ENABLED
 #define TIME_BLOCK(name, ...) do { \
     clock_t start_macro_time = clock(); \
@@ -47,47 +47,101 @@ typedef struct {
 } Asteroid;
 
 typedef struct {
-    unsigned int asteroids;
-    unsigned int enemies;
-    bool stationary;
-} LevelDefinition;
-
-LevelDefinition LEVELS[] = {
-    { .asteroids = 1, .enemies = 0, .stationary = true }, //stationary bool is kind of a hack, just set the velocity to zero
-    { .asteroids = 3, .enemies = 0 },
-    { .asteroids = 2, .enemies = 1 },
-    { .asteroids = 4, .enemies = 2 },
-    { .asteroids = 5, .enemies = 3 },
-};
-
-
-typedef struct {
     int current_level;
     u32 unlocked_levels;
     GameState current_game_state;
     Input input;
     Input prev_input;
     Ship player;
-#define MAX_ASTEROIDS 5    
-    u32 asteroid_count;
+#define MAX_ASTEROIDS 5
+    u32 asteroids_count;
     Asteroid asteroids[MAX_ASTEROIDS];
-#define MAX_ENEMIES 5    
-    u32 enemy_count;
-    Asteroid enemies[MAX_ENEMIES];    
+#define MAX_ENEMIES 5
+    u32 enemies_count;
+    Asteroid enemies[MAX_ENEMIES];
 #define MAX_LASERS 100
-    u32 laser_count;
+    u32 lasers_count;
     SpaceThing lasers[MAX_LASERS];
     float laser_lives[MAX_LASERS]; //didn't want to make another struct
 #define MAX_ENEMY_LASERS 20
-    u32 enemy_laser_count;
+    u32 enemy_lasers_count;
     SpaceThing enemy_lasers[MAX_LASERS];
     float enemy_laser_lives[MAX_LASERS]; //didn't want to make another struct    
     float t;
     int frame;
+#define MAX_CLEAR_RECTS 300
+    int clear_rects_count;
+    Rect clear_rects[MAX_CLEAR_RECTS];
+    v2 twinkle_stars[50];
 } Globals;
 
 Globals g;
 
+typedef struct {
+    u32 asteroids_count;
+    Asteroid asteroids[MAX_ASTEROIDS];
+    u32 enemies_count;
+    Asteroid enemies[MAX_ENEMIES];
+} LevelDefinition;
+
+LevelDefinition LEVELS[] = {
+    {
+        .asteroids_count = 1, .enemies_count = 0,
+        .asteroids = 
+        { (Asteroid){ .thing.size = 60, .thing.x = W / 2, .thing.y = H / 2, .health = 20, } },
+    },
+    {
+        .asteroids_count = 3, .enemies_count = 0,
+        .asteroids =
+        { 
+            (Asteroid)
+            { 
+                .thing.size =  60, .thing.x = W / 2, .thing.y = H / 2, .thing.velocity_x = 1, .thing.velocity_y = 1, .health = 20,
+            },
+            (Asteroid)
+            {
+                .thing.size = 80, .thing.x =  W-30, .thing.y = H-320, .thing.velocity_x = -1, .thing.velocity_y = -1, .health = 40,
+            },
+            (Asteroid)
+            {
+                .thing.size = 80, .thing.x = 30, .thing.y = 30, .thing.velocity_x = 1, .thing.velocity_y = 1, .health = 40,
+            },
+        },
+    },
+    {
+        .asteroids_count = 2, .enemies_count = 1,
+        .asteroids =
+        { 
+            (Asteroid){ .thing.size =  60, .thing.x = W / 2, .thing.y = H / 2, .thing.velocity_x = 1, .thing.velocity_y = 1, .health = 20 },
+            (Asteroid){ .thing.size = 120, .thing.x = 30,    .thing.y =    30, .thing.velocity_x = -1, .thing.velocity_y = -1, .health = 80 },
+        },
+    },
+    {
+        .asteroids_count = 3, .enemies_count = 2,
+        .asteroids =
+        {
+            (Asteroid){ .thing.size =  110, .thing.x = W / 2, .thing.y = 10, .thing.velocity_x = 0, .thing.velocity_y = 2.6, .health = 70 },
+            (Asteroid){ .thing.size =  70, .thing.x = W / 6, .thing.y = 40, .thing.velocity_x = 0, .thing.velocity_y = 2.4, .health = 30 },
+            (Asteroid){ .thing.size =  50, .thing.x = W / 3, .thing.y = H-30, .thing.velocity_x = 0, .thing.velocity_y = 2.1, .health = 10 },
+        }
+    },
+    {
+        .asteroids_count = 5, .enemies_count = 3,
+        .asteroids =
+        {
+            (Asteroid){ .thing.size =  40, .thing.x = W / 2, .thing.y = 10, .thing.velocity_x = 1.8, .thing.velocity_y = -1.6, .health = 10 },
+            (Asteroid){ .thing.size =  70, .thing.x = W / 6, .thing.y = 40, .thing.velocity_x = 1.5, .thing.velocity_y =  -1.4, .health = 30 },
+            (Asteroid){ .thing.size =  50, .thing.x = W / 3, .thing.y = H-30, .thing.velocity_x = 1.2, .thing.velocity_y = -1.1, .health = 10 },
+            (Asteroid){ .thing.size =  60, .thing.x = 100, .thing.y = 130, .thing.velocity_x = 1.2, .thing.velocity_y = -2.1, .health = 20 },
+            (Asteroid){ .thing.size =  60, .thing.x = 52, .thing.y = 240, .thing.velocity_x = 1.2, .thing.velocity_y = -.9, .health = 20 },
+        }
+    },
+};
+
+void add_clear_rect(Rect r) {
+    g.clear_rects[g.clear_rects_count++] = r;
+    assert(g.clear_rects_count < MAX_CLEAR_RECTS);
+}
 u32 rand_seed = 1;
 u32 random() {
     rand_seed = rand_seed * 1664525 + 1013904223;
@@ -107,7 +161,7 @@ bool collide(SpaceThing a, SpaceThing b) {
 
 void generate_asteroids() {
     rand_seed = 700;
-    for (int i = 0; i < g.asteroid_count; ++i)
+    for (int i = 0; i < g.asteroids_count; ++i)
     {
         g.asteroids[i] = (Asteroid) {
             .thing.x = random() * W,
@@ -130,7 +184,7 @@ void init() {
     };
 
 
-    g.asteroid_count = MAX_ASTEROIDS;
+    g.asteroids_count = MAX_ASTEROIDS;
 
     for (int i = 0; i < MAX_ENEMIES; ++i)
     {
@@ -139,7 +193,7 @@ void init() {
         g.enemies[i].thing.y = 20+(random()%200);
     }
 
-    g.unlocked_levels = 4;
+    //g.unlocked_levels = 4;
 /*
     Haven't done floating point printing support yet, 
     so this just takes a pointer to a value and reinterprets 
@@ -147,14 +201,14 @@ void init() {
 */
 #define PRINTABLE(n) (*(unsigned int*)&n)
 
-    printf
-    (
-        "state: %d, fuel: %x, size: %x, angle: %x\n", 
-        g.current_game_state,
-        PRINTABLE(g.player.fuel),
-        PRINTABLE(g.player.thing.size),
-        PRINTABLE(g.player.thing.angle)
-    );
+    // printf
+    // (
+    //     "state: %d, fuel: %x, size: %x, angle: %x\n", 
+    //     g.current_game_state,
+    //     PRINTABLE(g.player.fuel),
+    //     PRINTABLE(g.player.thing.size),
+    //     PRINTABLE(g.player.thing.angle)
+    // );
 }
 
 #define TIME_STEP 0.0166666667
@@ -167,7 +221,6 @@ void render();
 #define blue  make_color(0, 0, 0xFF, 0xFF)
 
 void tick() {
-    g.enemy_count = 0;
     switch(g.current_game_state) {
         case GameState_SPLASHSCREEN: {
             //printf("g.t: %x\n", PRINTABLE(g.t));
@@ -212,15 +265,24 @@ void tick() {
                 g.frame = 0;
                 g.player.fuel = 100;
                 g.player.thing.x = W / 2;
-                g.player.thing.y = H / 2;
+                g.player.thing.y = H / 2 + 150;
+                g.player.thing.angle = -M_PI_2;
+                g.player.thing.velocity_x = 0;
+                g.player.thing.velocity_y = 0;
+                g.player.thrust = 0;
+                g.asteroids_count = LEVELS[g.current_level].asteroids_count;
 
-                g.asteroid_count = LEVELS[g.current_level].asteroids;
+                for (int i = 0; i < g.asteroids_count; ++i)
+                {
+                    g.asteroids[i] = LEVELS[g.current_level].asteroids[i];
+                }
+
                 rand_seed = 12;
-                g.laser_count = 0;
-                generate_asteroids();
+                g.lasers_count = 0;
+                g.enemy_lasers_count = 0;
 
-                g.enemy_count = LEVELS[g.current_level].enemies;
-                for (int i = 0; i < LEVELS[g.current_level].enemies; ++i)
+                g.enemies_count = LEVELS[g.current_level].enemies_count;
+                for (int i = 0; i < g.enemies_count; ++i)
                 {
                     g.enemies[i].health = 25;
                     g.enemies[i].thing.x = random()%W;
@@ -242,6 +304,49 @@ void tick() {
             }
         } break;
         case GameState_PLAY: {
+
+            //gather clear rects
+            {
+                g.clear_rects_count = 0;
+                add_clear_rect((Rect){ g.player.thing.x-50, g.player.thing.y-50, 100, 100 });
+
+                for (int i = 0; i < 50; ++i) {
+                    add_clear_rect((Rect){ g.twinkle_stars[i].x - 4, g.twinkle_stars[i].y - 4, 8, 8 });
+                }
+
+                for (int i = 0; i < g.asteroids_count; ++i) {
+                    #define ast g.asteroids[i].thing
+                    add_clear_rect((Rect){ast.x-(ast.size+6), ast.y-(ast.size+6), ast.size*2+12, ast.size*2+12 });
+                    #undef ast
+                }
+
+                for (int i = 0; i < g.enemies_count; ++i) {
+                    #define enemy g.enemies[i].thing
+                    add_clear_rect((Rect){ enemy.x-50, enemy.y-50, 100, 100 });
+                    #undef enemy
+                }
+
+                for (int i = 0; i < g.lasers_count; ++i) {
+                    #define laser g.lasers[i]
+                    add_clear_rect((Rect){ laser.x-10, laser.y-10, 25, 25 });
+                    #undef laser
+                }
+
+                for (int i = 0; i < g.enemy_lasers_count; ++i) {
+                    #define laser g.enemy_lasers[i]
+                    add_clear_rect((Rect){ laser.x-10, laser.y-10, 25, 25 });
+                    #undef laser
+                }
+
+                //HUD
+                {
+                    float padding = 30;
+                    float max_width = 300;
+                    float adjusted_width = (g.player.fuel/100.0f)*max_width;
+                    float diff = max_width - adjusted_width;
+                    add_clear_rect((Rect){ W/2-max_width/2 + adjusted_width+1, H - 30, diff, 20 });
+                } 
+            }
 
             //player controls
             if (g.input.left)  g.player.thing.angle -= TIME_STEP*6.28f;
@@ -269,62 +374,63 @@ void tick() {
 
             // fuel consumption
             g.player.fuel = g.player.fuel - g.player.thrust * 0.1;
-            if(g.player.fuel <= 0)
+            if(g.player.fuel <= 0){
                 g.current_game_state = GameState_LEVELSELECT;
+            }
 
             // laser lifetime
-            for (int i = 0; i < g.laser_count; ++i) {
+            for (int i = 0; i < g.lasers_count; ++i) {
                 g.laser_lives[i] -= TIME_STEP;
                 if(g.laser_lives[i] <= 0){
-                    g.lasers[i] = g.lasers[g.laser_count-1];
-                    g.laser_lives[i] = g.laser_lives[g.laser_count-1];
-                    g.laser_count--;
+                    g.lasers[i] = g.lasers[g.lasers_count-1];
+                    g.laser_lives[i] = g.laser_lives[g.lasers_count-1];
+                    g.lasers_count--;
                 }
             }
 
             // enemy laser lifetime
-            for (int i = 0; i < g.enemy_laser_count; ++i) {
+            for (int i = 0; i < g.enemy_lasers_count; ++i) {
                 g.enemy_laser_lives[i] -= TIME_STEP;
                 if(g.enemy_laser_lives[i] <= 0){
-                    g.enemy_lasers[i] = g.enemy_lasers[g.enemy_laser_count-1];
-                    g.enemy_laser_lives[i] = g.enemy_laser_lives[g.enemy_laser_count-1];
-                    g.enemy_laser_count--;
+                    g.enemy_lasers[i] = g.enemy_lasers[g.enemy_lasers_count-1];
+                    g.enemy_laser_lives[i] = g.enemy_laser_lives[g.enemy_lasers_count-1];
+                    g.enemy_lasers_count--;
                 }
             }
 
             // fire laser
             if (g.input.fire) {
-                if(g.laser_count < MAX_LASERS) {
-                    g.lasers[g.laser_count] = (SpaceThing) {
+                if(g.lasers_count < MAX_LASERS) {
+                    g.lasers[g.lasers_count] = (SpaceThing) {
                       .x = g.player.thing.x+cos((g.player.thing.angle))*8,
                       .y = g.player.thing.y+sin((g.player.thing.angle))*8,
                       .angle = g.player.thing.angle,
                       .velocity_x = g.player.thing.velocity_x + cos(g.player.thing.angle) * 4,
                       .velocity_y = g.player.thing.velocity_y + sin(g.player.thing.angle) * 4,
                     };
-                    g.laser_lives[g.laser_count] = 2;
-                    g.laser_count++;
+                    g.laser_lives[g.lasers_count] = 2;
+                    g.lasers_count++;
                 }
             }
 
             //enemy fire
-            if(g.enemy_count > 0) {
+            if(g.enemies_count > 0) {
                 rand_seed = PRINTABLE(g.t);
                 if(random_float() < .05f) {
-                    if(g.enemy_laser_count < MAX_ENEMY_LASERS) {
-                        int enemy_index = random() % g.enemy_count;
-                        g.enemy_lasers[g.enemy_laser_count] = g.enemies[enemy_index].thing;
-                        g.enemy_laser_lives[g.enemy_laser_count] = 2;
+                    if(g.enemy_lasers_count < MAX_ENEMY_LASERS) {
+                        int enemy_index = random() % g.enemies_count;
+                        g.enemy_lasers[g.enemy_lasers_count] = g.enemies[enemy_index].thing;
+                        g.enemy_laser_lives[g.enemy_lasers_count] = 2;
 
-                        g.enemy_lasers[g.enemy_laser_count].velocity_x = cos(g.enemies[enemy_index].thing.angle) * 4,
-                        g.enemy_lasers[g.enemy_laser_count].velocity_y = sin(g.enemies[enemy_index].thing.angle) * 4,                        
-                        g.enemy_laser_count++;
+                        g.enemy_lasers[g.enemy_lasers_count].velocity_x = cos(g.enemies[enemy_index].thing.angle) * 4,
+                        g.enemy_lasers[g.enemy_lasers_count].velocity_y = sin(g.enemies[enemy_index].thing.angle) * 4,                        
+                        g.enemy_lasers_count++;
                     }
                 }
             }
 
             //move asteroids
-            for (int i = 0; i < g.asteroid_count; ++i) {
+            for (int i = 0; i < g.asteroids_count; ++i) {
                 #define ast g.asteroids[i]
                 ast.thing.x = ((int)(ast.thing.x + ast.thing.velocity_x + W) % W);
                 ast.thing.y = ((int)(ast.thing.y + ast.thing.velocity_y + H) % H);
@@ -334,7 +440,7 @@ void tick() {
 
 
             //move lasers
-            for (int i = 0; i < g.laser_count; ++i) {
+            for (int i = 0; i < g.lasers_count; ++i) {
                 #define laser (g.lasers[i])
                 laser.x = laser.x + laser.velocity_x;
                 laser.y = laser.y + laser.velocity_y;
@@ -346,7 +452,7 @@ void tick() {
             }
 
             //move enemy lasers
-            for (int i = 0; i < g.enemy_laser_count; ++i) {
+            for (int i = 0; i < g.enemy_lasers_count; ++i) {
                 #define laser (g.enemy_lasers[i])
                 laser.x = laser.x + laser.velocity_x;
                 laser.y = laser.y + laser.velocity_y;
@@ -357,7 +463,7 @@ void tick() {
                 #undef laser
             }
             // move enemies
-            for (int i = 0; i < g.enemy_count; ++i)
+            for (int i = 0; i < g.enemies_count; ++i)
             {
                 #define enemy (g.enemies[i])
                 v2 distance = (v2){ g.player.thing.x - enemy.thing.x, g.player.thing.y - enemy.thing.y };
@@ -375,43 +481,37 @@ void tick() {
             }
 
             //check laser:asteroid collisions
-            for (int i = 0; i < g.laser_count; i++) {
-                for (int o = 0; o < g.asteroid_count; ++o) {
-                    SpaceThing laser = g.lasers[i];
-                    SpaceThing ast   = g.asteroids[o].thing;
+            for (int i = g.lasers_count - 1; i >= 0; --i) {
+                for (int o = g.asteroids_count - 1; o >= 0; --o) {
+                    if (collide(g.lasers[i], g.asteroids[o].thing)) {
+                        g.lasers[i] = g.lasers[g.lasers_count - 1];
+                        g.laser_lives[i] = g.laser_lives[g.lasers_count - 1];
+                        g.lasers_count--;
 
-                    if(collide(laser, ast)) {
-                        g.lasers[i] = g.lasers[g.laser_count-1];
-                        g.laser_lives[i] = g.laser_lives[g.laser_count-1];
-                        g.laser_count--;
-                        i--;
                         g.asteroids[o].health--;
                         g.asteroids[o].thing.size--;
-                        if(g.asteroids[o].health <= 0){
-                            g.asteroids[o] = g.asteroids[g.asteroid_count-1];
-                            g.asteroid_count--;
-                            o--;
+                        if (g.asteroids[o].health <= 0) {
+                            g.asteroids[o] = g.asteroids[g.asteroids_count - 1];
+                            g.asteroids_count--;
                         }
+
+                        break;
                     }
                 }
             }
 
             //check laser:enemy collisions
-            for (int i = 0; i < g.laser_count; i++) {
-                for (int o = 0; o < g.enemy_count; ++o) {
-                    SpaceThing laser = g.lasers[i];
-                    SpaceThing enemy = g.enemies[o].thing;
+            for (int i = g.lasers_count - 1; i >= 0; --i) {
+                for (int o = g.enemies_count - 1; o >= 0; --o) {
+                    if(collide(g.lasers[i], g.enemies[o].thing)) {
+                        g.lasers[i] = g.lasers[g.lasers_count-1];
+                        g.laser_lives[i] = g.laser_lives[g.lasers_count-1];
+                        g.lasers_count--;
 
-                    if(collide(laser, enemy)) {
-                        g.lasers[i] = g.lasers[g.laser_count-1];
-                        g.laser_lives[i] = g.laser_lives[g.laser_count-1];
-                        g.laser_count--;
-                        i--;
                         g.enemies[o].health--;
                         if(g.enemies[o].health <= 0){
-                            g.enemies[o] = g.enemies[g.enemy_count-1];
-                            g.enemy_count--;
-                            o--;
+                            g.enemies[o] = g.enemies[g.enemies_count-1];
+                            g.enemies_count--;
                         }
                     }
                 }
@@ -419,25 +519,24 @@ void tick() {
 
             //check player collisions
             {
-                for (int i = 0; i < g.asteroid_count; ++i) {
+                for (int i = 0; i < g.asteroids_count; ++i) {
                     if(collide(g.player.thing, g.asteroids[i].thing)) {
                         g.current_game_state = GameState_LEVELSELECT;
                     }
                 }
 
-                for (int i = 0; i < g.enemy_count; ++i) {
+                for (int i = 0; i < g.enemies_count; ++i) {
                     if(collide(g.player.thing, g.enemies[i].thing)) {
                         g.current_game_state = GameState_LEVELSELECT;
                     }
                 }
 
-                for (int i = 0; i < g.enemy_laser_count; ++i) {
+                for (int i = g.enemy_lasers_count - 1; i >= 0; --i) {
                     if(collide(g.player.thing, g.enemy_lasers[i])) {
                         g.player.fuel -= 5;
-                        g.enemy_lasers[i] = g.enemy_lasers[g.enemy_laser_count-1];
-                        g.enemy_laser_lives[i] = g.enemy_laser_lives[g.enemy_laser_count-1];
-                        g.enemy_laser_count--;
-                        i--;                        
+                        g.enemy_lasers[i] = g.enemy_lasers[g.enemy_lasers_count-1];
+                        g.enemy_laser_lives[i] = g.enemy_laser_lives[g.enemy_lasers_count-1];
+                        g.enemy_lasers_count--;      
                     }
                 }
 
@@ -445,7 +544,7 @@ void tick() {
 
             //check for victory
             {
-                if(g.asteroid_count <= 0) {
+                if(g.asteroids_count <= 0 && g.enemies_count <= 0) {
                     if(g.unlocked_levels < 4 && g.current_level == g.unlocked_levels) {
                         g.unlocked_levels++;
                     }
@@ -488,7 +587,7 @@ void simulate() {
     last = clock();
 }
 
-void health_bar(Color2 from, Color2 to, Rect r) {
+void health_bar(Color2 from, Color2 to, Rect r, float max) {
     int min_x = r.x;
     int max_x = r.x + r.width;
     int min_y = r.y;
@@ -503,11 +602,14 @@ void health_bar(Color2 from, Color2 to, Rect r) {
     if(max_y > H)
         max_y = H;
 
-    for(int _y = min_y; _y < max_y; _y++)
     for(int _x = min_x; _x < max_x; _x++) {
-        Color col = lerp_color(from, to, (_x - min_x) / (float)(max_x
-         - min_x));
-        draw_target.pixels[_y*W+_x] = col;
+        Color col = lerp_color(from, to, (_x - min_x) / (float)(max - min_x));
+        draw_target.pixels[min_y*W+_x] = col;
+    }
+
+    for(int _y = min_y+1; _y < max_y; _y++)
+    for(int _x = min_x; _x < max_x; _x++) {
+        draw_target.pixels[_y*W+_x] = draw_target.pixels[(_y-1)*W+_x];
     }
 }
 
@@ -581,25 +683,11 @@ void render() {
                     fill_rect(white, (Rect){ x - half_size, y - half_size, size, size });
                 }
 
-                //HUD
-                {
-                    // float padding = 30;
-                    // float max_width = W-(2*padding);
-                    // health_bar( (Color2){.r = 255 }, (Color2){.g = 255 }, (Rect){ padding, H - 30, max_width, 20 });
-                }
-
                 draw_target.pixels = pixels;
                 background_inited = true;
             }
 
-            //so both buffers get the background
-            if(true || g.frame < 2) {
-                draw_texture(background);
-                g.frame++;
-            }
-            static float t = 0;
             rand_seed = 2;
-            static v2 twinkle_stars[50];
             static bool twinkle_stars_inited = false;
 
             TIME_BLOCK("twinkle init",
@@ -608,13 +696,49 @@ void render() {
                     //generate twinkle stars
                     for (int i = 0; i < 50; ++i)
                     {
-                        twinkle_stars[i] = (v2){ round(random_float() * W), round(random_float() * H) };
+                        g.twinkle_stars[i] = (v2){ round(random_float() * W), round(random_float() * H) };
                     }
 
                     twinkle_stars_inited = true;
                 }
             );
 
+            //so both buffers get the background
+            if(g.frame < 2) {
+                //printf("target: %d\n", draw_target.pixels);
+                draw_texture(background);
+                g.frame++;
+            }
+
+            //CLEAR background rects
+            {
+#ifdef RPI              
+                TIME_BLOCK("clear rect",
+                    Color *old_pixels = draw_target.pixels;
+                    if(back_buffer)
+                        draw_target.pixels=((unsigned int *)(lfb));
+                    else
+                        draw_target.pixels=((unsigned int *)(lfb))+(768*1024);   
+
+                    for (int i = 0; i < g.clear_rects_count; ++i)
+                    {
+                        sample_texture_region(background, g.clear_rects[i]);
+                    }
+
+                    draw_target.pixels = old_pixels;
+                );
+
+#else
+                for (int i = 0; i < g.clear_rects_count; ++i)
+                {
+                    sample_texture_region(background, g.clear_rects[i]);
+                }
+#endif
+            }
+
+
+#ifdef _WIN32
+            static float t = 0;
             TIME_BLOCK("twinkle render",
                 //draw twinkle stars
                 for (int i = 0; i < 50; ++i)
@@ -630,74 +754,65 @@ void render() {
                     });
 
                     float half_size = size/2.0f;
-                    //sample_texture_region(background, (Rect){ x - 4, y - 4, 8, 8 });
-                    fill_rect(white, (Rect){ twinkle_stars[i].x - half_size, twinkle_stars[i].y - half_size, size, size });
+                    fill_rect(white, (Rect){ g.twinkle_stars[i].x - half_size, g.twinkle_stars[i].y - half_size, size, size });
                 }
             );
 
             t += .01f;
-
-            TIME_BLOCK("randomized 120x120 texture", 
-                draw_texture2(flork_texture, 32, 32);
-            );
+#endif            
 
             TIME_BLOCK("enemies render", 
-                for (int i = 0; i < g.enemy_count; ++i)
+                for (int i = 0; i < g.enemies_count; ++i)
                 {
                     draw_ship(g.enemies[i].thing, make_color(0xBB, 0, 0, 0), .2f);
                 }
             );
 
-            //sample_texture_region(background, (Rect){ g.player.thing.x-50, g.player.thing.y-50, 100, 100 });
             TIME_BLOCK("player render",
                 draw_ship(g.player.thing, make_color(0, 0xBB, 0, 0), g.player.thrust);
             );
 
-            for (int i = 0; i < g.asteroid_count; ++i)
+            for (int i = 0; i < g.asteroids_count; ++i)
             {
+                printf("%d: %f\n", i, g.asteroids[i].thing.size);
                 Asteroid ast = g.asteroids[i];
-                //fill_rect(make_color(95, 50, 0, 255), (Rect){ ast.thing.x, ast.thing.y , ast.thing.size, ast.thing.size });
-                // if(g.t > 4)
-                //     sample_texture_region(background, (Rect){ast.thing.x-ast.thing.size, ast.thing.y-ast.thing.size, ast.thing.size*2+4, ast.thing.size*2+4});
                 TIME_BLOCK("ast circle render",
+#ifdef _WIN32                    
                     fill_circle(make_color(95, 50, 0, 255), (v2){ ast.thing.x, ast.thing.y }, ast.thing.size);
-                );
-
-                TIME_BLOCK("ast rect render",
-                    fill_rect(make_color(95, 50, 0, 255), (Rect){ ast.thing.x - ast.thing.size, ast.thing.y - ast.thing.size, ast.thing.size*2, ast.thing.size*2 });
+#else
+                    fill_rect(make_color(95, 50, 0, 255), (Rect){ ast.thing.x-ast.thing.size, ast.thing.y-ast.thing.size, ast.thing.size*2, ast.thing.size*2 });
+#endif
                 );
             }
 
-            for (int i = 0; i < g.laser_count; ++i)
+            for (int i = 0; i < g.lasers_count; ++i)
             {
-                //fill_rect(make_color(0, 0xFF, 0xFF, 0xFF), (Rect){ g.lasers[i].x-5, g.lasers[i].y-5, 10, 10});
+#ifdef _WIN32
                 fill_circle(make_color(0, 0xFF, 0xFF, 0), (v2){ g.lasers[i].x, g.lasers[i].y }, 5);
+#else
+                fill_rect(make_color(0, 0xFF, 0xFF, 0), (Rect){ g.lasers[i].x-5, g.lasers[i].y-5, 10, 10 });
+#endif
             }
 
-            for (int i = 0; i < g.enemy_laser_count; ++i)
+            for (int i = 0; i < g.enemy_lasers_count; ++i)
             {
-                //fill_rect(make_color(0, 0xFF, 0xFF, 0xFF), (Rect){ g.lasers[i].x-5, g.lasers[i].y-5, 10, 10});
-                clock_t begin_laser_render = clock();
+#ifdef _WIN32
                 fill_circle(make_color(0, 0xFF, 0xFF, 0), (v2){ g.enemy_lasers[i].x, g.enemy_lasers[i].y }, 5);
-                clock_t end_laser_render = clock();                
-                elapsed = end_laser_render-begin_laser_render;
-                printf("laser render time: %d uS\n", elapsed);                
+#else                
+                fill_rect(make_color(0, 0xFF, 0xFF, 0), (Rect){ g.enemy_lasers[i].x-5, g.enemy_lasers[i].y-5, 10, 10 });
+#endif
             }
 
             //HUD
             {
                 float padding = 30;
-                float max_width = W-(2*padding);
+                float max_width = 300;
                 float adjusted_width = (g.player.fuel/100.0f)*max_width;
-                static bool health_bar_inited = false;
-                //if(!health_bar_inited) {
-                    health_bar( (Color2){.r = 255 }, (Color2){.g = 255 }, (Rect){ padding, H - 30, max_width, 20 });
-                    health_bar_inited = true;
-                //}
-                //else {
-                    float diff = max_width - adjusted_width;
-                    sample_texture_region(background, (Rect){ padding + adjusted_width+1, H - 30, diff, 20 });
-                //}
+
+                TIME_BLOCK("health bar",
+                    float x =  W/2-max_width/2;
+                    health_bar( (Color2){.r = 255 }, (Color2){.g = 255 }, (Rect){ W/2-max_width/2, H - 30, adjusted_width, 20 }, x+max_width);
+                );
             }
         } break;
         default:

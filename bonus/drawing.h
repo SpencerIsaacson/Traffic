@@ -19,11 +19,21 @@ float lerp_float(float a, float b, float t) {
     return a + t * (b - a);
 }
 
+#ifdef _WIN32
 //TODO you will need a separate implementation on the pi with a different channel order
 Color2 color2_from_color(Color col) {
     unsigned char *p = (unsigned char*)&col;
     return (Color2){.b = p[0], .g = p[1], .r = p[2]};
 }
+#else 
+#ifdef RPI
+Color2 color2_from_color(Color col) {
+    unsigned char *p = (unsigned char*)&col;
+    return (Color2){.b = p[2], .g = p[1], .r = p[0]};
+}
+#endif
+#endif
+
 Color lerp_color(Color2 a, Color2 b, float t) {
     float a_r = a.r;
     float a_g = a.g;
@@ -85,18 +95,6 @@ void fill_rect(Color col, Rect r) {
     }
 }
 
-// void draw_texture(Texture texture) {
-//     assert(draw_target.pixels);
-//     unsigned long long *p = (unsigned long long *)draw_target.pixels;
-//     unsigned long long *p2 = (unsigned long long *)texture.pixels;
-//     int f = texture.height/2;
-//     int g = texture.width/2;
-//     for (int y = 0; y < f; ++y)
-//     for (int x = 0; x < g; ++x) {
-//         p[y*W+x] = p2[y*texture.width+x];
-//     }
-// }
-
 void draw_texture(Texture texture) {
     assert(draw_target.pixels);
     for (int y = 0; y < texture.height; ++y)
@@ -105,7 +103,7 @@ void draw_texture(Texture texture) {
     }
 }
 
-void draw_texture2(Texture texture, int x, int y) {
+void draw_texture_at(Texture texture, int x, int y) {
     assert(draw_target.pixels);
     for (int _y = 0; _y < texture.height; ++_y)
     for (int _x = 0; _x < texture.width; ++_x) {
@@ -113,11 +111,48 @@ void draw_texture2(Texture texture, int x, int y) {
     }
 }
 
+//Assumes the texture is full screen sized
 void sample_texture_region(Texture texture, Rect r) {
     assert(draw_target.pixels);
-    for (int y = 0; y < r.height; ++y)
-    for (int x = 0; x < r.width; ++x) {
-        draw_target.pixels[(r.y+y)*W+(r.x+x)] = texture.pixels[(r.y+y)*texture.width+(r.x+x)];
+    int min_x = r.x;
+    int max_x = r.x + r.width;
+    int min_y = r.y;
+    int max_y = r.y + r.height;
+
+    if(min_x < 0)
+        min_x = 0;
+    if(max_x > W)
+        max_x = W;
+    if(min_y < 0)
+        min_y = 0;
+    if(max_y > H)
+        max_y = H;
+
+    for(int _y = min_y; _y < max_y; _y++)
+    for(int _x = min_x; _x < max_x; _x++) {
+        draw_target.pixels[_y*W+_x] = texture.pixels[_y*W+_x];
+    }
+}
+
+void sample_texture_region_at(Texture texture, Rect r, int x, int y) {
+    assert(draw_target.pixels);
+    int min_x = r.x;
+    int max_x = r.x + r.width;
+    int min_y = r.y;
+    int max_y = r.y + r.height;
+
+    if(min_x < 0)
+        min_x = 0;
+    if(max_x > W)
+        max_x = W;
+    if(min_y < 0)
+        min_y = 0;
+    if(max_y > H)
+        max_y = H;
+
+    for(int _y = min_y; _y < max_y; _y++)
+    for(int _x = min_x; _x < max_x; _x++) {
+        draw_target.pixels[(_y+y)*W+(_x+x)] = texture.pixels[_y*W+_x];
     }
 }
 
@@ -213,7 +248,6 @@ float v2_distance(v2 a, v2 b)
 {
     return v2_magnitude(v2_subtract(a,b));
 }
-
 
 float signed_distance_to_circle(v2 sample, v2 position, float radius)
 {
