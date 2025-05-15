@@ -72,6 +72,9 @@ typedef struct {
 #define MAX_CLEAR_RECTS 300
     int clear_rects_count;
     Rect clear_rects[MAX_CLEAR_RECTS];
+#define MAX_SPECIAL_CLEAR 100    
+    int special_clear_count;
+    Rect special_clear[MAX_SPECIAL_CLEAR];    
     v2 twinkle_stars[50];
 } Globals;
 
@@ -142,6 +145,14 @@ void add_clear_rect(Rect r) {
     g.clear_rects[g.clear_rects_count++] = r;
     assert(g.clear_rects_count < MAX_CLEAR_RECTS);
 }
+
+void add_special_clear(Rect r) {
+    if(g.special_clear_count < MAX_SPECIAL_CLEAR-1){
+        g.special_clear[g.special_clear_count++] = r;
+        assert(g.special_clear_count < MAX_SPECIAL_CLEAR); // this assert came in handy
+    }
+}
+
 u32 rand_seed = 1;
 u32 random() {
     rand_seed = rand_seed * 1664525 + 1013904223;
@@ -356,6 +367,8 @@ void tick() {
             if (g.input.down)  g.player.thrust = fmax(g.player.thrust - 0.1, 0);
 
             //player physics
+            Rect old_player_rect = (Rect){ g.player.thing.x-50, g.player.thing.y-50, 100, 100 };
+
             float acceleration = g.player.thrust * 0.2;
             g.player.thing.velocity_x = g.player.thing.velocity_x + cos((g.player.thing.angle)) * acceleration;
             g.player.thing.velocity_y = g.player.thing.velocity_y + sin((g.player.thing.angle)) * acceleration;
@@ -367,10 +380,10 @@ void tick() {
             g.player.thing.y = g.player.thing.y + g.player.thing.velocity_y;
 
             // wrap around screen
-            if (g.player.thing.x < 0) g.player.thing.x = W;
-            if (g.player.thing.x > W) g.player.thing.x = 0;
-            if (g.player.thing.y < 0) g.player.thing.y = H;
-            if (g.player.thing.y > H) g.player.thing.y = 0;
+            if (g.player.thing.x < 0) { add_special_clear(old_player_rect); g.player.thing.x = W; };
+            if (g.player.thing.x > W) { add_special_clear(old_player_rect); g.player.thing.x = 0; };
+            if (g.player.thing.y < 0) { add_special_clear(old_player_rect); g.player.thing.y = H; };
+            if (g.player.thing.y > H) { add_special_clear(old_player_rect); g.player.thing.y = 0; };
 
             // fuel consumption
             g.player.fuel = g.player.fuel - g.player.thrust * 0.1;
@@ -382,6 +395,7 @@ void tick() {
             for (int i = 0; i < g.lasers_count; ++i) {
                 g.laser_lives[i] -= TIME_STEP;
                 if(g.laser_lives[i] <= 0){
+                    add_special_clear((Rect){ g.lasers[i].x-10, g.lasers[i].y-10, 25, 25 });
                     g.lasers[i] = g.lasers[g.lasers_count-1];
                     g.laser_lives[i] = g.laser_lives[g.lasers_count-1];
                     g.lasers_count--;
@@ -392,6 +406,7 @@ void tick() {
             for (int i = 0; i < g.enemy_lasers_count; ++i) {
                 g.enemy_laser_lives[i] -= TIME_STEP;
                 if(g.enemy_laser_lives[i] <= 0){
+                    add_special_clear((Rect){ g.enemy_lasers[i].x-10, g.enemy_lasers[i].y-10, 25, 25 });
                     g.enemy_lasers[i] = g.enemy_lasers[g.enemy_lasers_count-1];
                     g.enemy_laser_lives[i] = g.enemy_laser_lives[g.enemy_lasers_count-1];
                     g.enemy_lasers_count--;
@@ -442,12 +457,13 @@ void tick() {
             //move lasers
             for (int i = 0; i < g.lasers_count; ++i) {
                 #define laser (g.lasers[i])
+                Rect old_rect = (Rect) { laser.x-10, laser.y-10, 25, 25 };
                 laser.x = laser.x + laser.velocity_x;
                 laser.y = laser.y + laser.velocity_y;
-                if (laser.x < 0) laser.x = W;
-                if (laser.x > W) laser.x = 0;
-                if (laser.y < 0) laser.y = H;
-                if (laser.y > H) laser.y = 0;
+                if (laser.x < 0) { add_special_clear(old_rect); laser.x = W; }
+                if (laser.x > W) { add_special_clear(old_rect); laser.x = 0; }
+                if (laser.y < 0) { add_special_clear(old_rect); laser.y = H; }
+                if (laser.y > H) { add_special_clear(old_rect); laser.y = 0; }
                 #undef laser
             }
 
@@ -484,13 +500,20 @@ void tick() {
             for (int i = g.lasers_count - 1; i >= 0; --i) {
                 for (int o = g.asteroids_count - 1; o >= 0; --o) {
                     if (collide(g.lasers[i], g.asteroids[o].thing)) {
+                        add_special_clear((Rect){ g.lasers[i].x-10, g.lasers[i].y-10, 25, 25 });
                         g.lasers[i] = g.lasers[g.lasers_count - 1];
                         g.laser_lives[i] = g.laser_lives[g.lasers_count - 1];
                         g.lasers_count--;
-
                         g.asteroids[o].health--;
                         g.asteroids[o].thing.size--;
                         if (g.asteroids[o].health <= 0) {
+                            add_special_clear((Rect)
+                            {
+                                g.asteroids[o].thing.x-(g.asteroids[o].thing.size+6), 
+                                g.asteroids[o].thing.y-(g.asteroids[o].thing.size+6), 
+                                g.asteroids[o].thing.size*2+12, 
+                                g.asteroids[o].thing.size*2+12
+                            });
                             g.asteroids[o] = g.asteroids[g.asteroids_count - 1];
                             g.asteroids_count--;
                         }
@@ -504,12 +527,13 @@ void tick() {
             for (int i = g.lasers_count - 1; i >= 0; --i) {
                 for (int o = g.enemies_count - 1; o >= 0; --o) {
                     if(collide(g.lasers[i], g.enemies[o].thing)) {
+                        add_special_clear((Rect){ g.lasers[i].x-10, g.lasers[i].y-10, 25, 25 });
                         g.lasers[i] = g.lasers[g.lasers_count-1];
                         g.laser_lives[i] = g.laser_lives[g.lasers_count-1];
                         g.lasers_count--;
-
                         g.enemies[o].health--;
                         if(g.enemies[o].health <= 0){
+                            add_special_clear((Rect){ g.enemies[o].thing.x-50, g.enemies[o].thing.y-50, 100, 100 });
                             g.enemies[o] = g.enemies[g.enemies_count-1];
                             g.enemies_count--;
                         }
@@ -534,9 +558,10 @@ void tick() {
                 for (int i = g.enemy_lasers_count - 1; i >= 0; --i) {
                     if(collide(g.player.thing, g.enemy_lasers[i])) {
                         g.player.fuel -= 5;
+                        add_special_clear((Rect){ g.enemy_lasers[i].x-10, g.enemy_lasers[i].y-10, 25, 25 }); 
                         g.enemy_lasers[i] = g.enemy_lasers[g.enemy_lasers_count-1];
                         g.enemy_laser_lives[i] = g.enemy_laser_lives[g.enemy_lasers_count-1];
-                        g.enemy_lasers_count--;      
+                        g.enemy_lasers_count--;
                     }
                 }
 
@@ -582,8 +607,12 @@ void simulate() {
         elapsed -= TIME_STEP;
         //printf("after tick function\n");
     }
-    if(foo)
+    if(foo){
         render();
+#ifdef RPI        
+        swap_buffers();
+#endif
+    }
     last = clock();
 }
 
@@ -714,18 +743,17 @@ void render() {
             {
 #ifdef RPI              
                 TIME_BLOCK("clear rect",
-                    Color *old_pixels = draw_target.pixels;
-                    if(back_buffer)
-                        draw_target.pixels=((unsigned int *)(lfb));
-                    else
-                        draw_target.pixels=((unsigned int *)(lfb))+(768*1024);   
-
                     for (int i = 0; i < g.clear_rects_count; ++i)
                     {
                         sample_texture_region(background, g.clear_rects[i]);
                     }
-
-                    draw_target.pixels = old_pixels;
+                    
+                    if(g.special_clear_count > 1) {
+                        for (int i = 0; i < g.special_clear_count; ++i)
+                        {
+                            sample_texture_region(background, g.special_clear[i]);
+                        }
+                    }
                 );
 
 #else
@@ -774,7 +802,7 @@ void render() {
 
             for (int i = 0; i < g.asteroids_count; ++i)
             {
-                printf("%d: %f\n", i, g.asteroids[i].thing.size);
+                //printf("%d: %f\n", i, g.asteroids[i].thing.size);
                 Asteroid ast = g.asteroids[i];
                 TIME_BLOCK("ast circle render",
 #ifdef _WIN32                    

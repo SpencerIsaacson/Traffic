@@ -50,6 +50,7 @@ bool back_buffer;
 #define make_color(r, g, b, a) ((Color)((a << 24) | (b << 16) | (g << 8) | r))
 #include "../drawing.h"
 
+void swap_buffers();
 void poll_input();
 #include "space_mission.h"
 void poll_input(){
@@ -159,7 +160,6 @@ void main()
 
     while(1) {
         simulate();
-        swap_buffers();
         //printf("swapped that buffer\n");
         //printf("buffer swap completed\n");
         //printf("successfully did nothing for 5 milliseconds\n");
