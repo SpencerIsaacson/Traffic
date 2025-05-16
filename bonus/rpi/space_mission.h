@@ -11,9 +11,9 @@ It also needs some rendering optimizations to reach 60FPS.
 Also the redraw code needs to be corrected so the clear-frames are always correct, since sometimes they misalign (might be mixing up the back buffer and the front buffer?)
 */
 
-
+#define PRINT_DISABLED
 #ifdef PRINT_DISABLED
-#define printf(n, ...) (/*print n*/)
+#define printf(n, ...) ((void)0)
 #endif
 
 //#define PROFILING_ENABLED
@@ -216,14 +216,14 @@ void init() {
 */
 #define PRINTABLE(n) (*(unsigned int*)&n)
 
-    // printf
-    // (
-    //     "state: %d, fuel: %x, size: %x, angle: %x\n", 
-    //     g.current_game_state,
-    //     PRINTABLE(g.player.fuel),
-    //     PRINTABLE(g.player.thing.size),
-    //     PRINTABLE(g.player.thing.angle)
-    // );
+    printf
+    (
+        "state: %d, fuel: %x, size: %x, angle: %x\n", 
+        g.current_game_state,
+        PRINTABLE(g.player.fuel),
+        PRINTABLE(g.player.thing.size),
+        PRINTABLE(g.player.thing.angle)
+    );
 }
 
 #define TIME_STEP 0.0166666667
@@ -238,7 +238,7 @@ void render();
 void tick() {
     switch(g.current_game_state) {
         case GameState_SPLASHSCREEN: {
-            //printf("g.t: %x\n", PRINTABLE(g.t));
+            printf("g.t: %x\n", PRINTABLE(g.t));
             if(g.t > 6) {
                 g.current_game_state = GameState_TITLESCREEN;
                 g.t = 0;
@@ -247,7 +247,7 @@ void tick() {
             float h = 175;
             fill_rect(lerp_color((Color2){}, (Color2){ .b = 255 }, fabs(sin(g.t/2))), (Rect){(W-w)/2.0f, (H-h)/2.0f, w, h });
             g.t += TIME_STEP;
-            //printf("finished one splash tick\n");
+            printf("finished one splash tick\n");
         } break;
         case GameState_TITLESCREEN: {
             if(g.input.start) {
@@ -609,7 +609,7 @@ void simulate() {
         tick();
         g.prev_input = g.input;
         elapsed -= TIME_STEP;
-        //printf("after tick function\n");
+        printf("after tick function\n");
     }
     if(foo){
         render();
@@ -738,7 +738,6 @@ void render() {
 
             //so both buffers get the background
             if(g.frame < 2) {
-                //printf("target: %d\n", draw_target.pixels);
                 draw_texture(background);
                 g.frame++;
             }
@@ -806,7 +805,6 @@ void render() {
 
             for (int i = 0; i < g.asteroids_count; ++i)
             {
-                //printf("%d: %f\n", i, g.asteroids[i].thing.size);
                 Asteroid ast = g.asteroids[i];
                 TIME_BLOCK("ast circle render",
 #ifdef _WIN32                    
