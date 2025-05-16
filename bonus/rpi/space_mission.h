@@ -1,3 +1,21 @@
+/*
+TODO
+it's time to refactor, a lot of patterns of repetition are emerging.
+I could have a single "SpaceThing" (entity) arena, and the player, enemies, and all lasers could simply have a pointer into the SpaceStuff arena, so I could apply
+the movement code once iterating over the space_thing array
+
+It's also time to start thinking in general about allocation strategies. Perhaps something like a frame arena to capture transient per-frame state.
+
+It also needs some rendering optimizations to reach 60FPS.
+
+Also the redraw code needs to be corrected so the clear-frames are always correct, since sometimes they misalign (might be mixing up the back buffer and the front buffer?)
+*/
+
+
+#ifdef PRINT_DISABLED
+#define printf(n, ...) (/*print n*/)
+#endif
+
 //#define PROFILING_ENABLED
 #ifdef PROFILING_ENABLED
 #define TIME_BLOCK(name, ...) do { \
@@ -22,6 +40,8 @@ typedef enum {
     GameState_count,
 } GameState;
 
+
+//todo encode as bitfields to save space?
 typedef struct {
     bool up, down, left, right;
     bool fire;
@@ -168,22 +188,6 @@ bool collide(SpaceThing a, SpaceThing b) {
     float dx = a.x - b.x;
     float dy = a.y - b.y;
     return sqrt(dx * dx + dy * dy) < ((a.size + b.size));
-}
-
-void generate_asteroids() {
-    rand_seed = 700;
-    for (int i = 0; i < g.asteroids_count; ++i)
-    {
-        g.asteroids[i] = (Asteroid) {
-            .thing.x = random() * W,
-            .thing.y = random() * H,
-            .thing.velocity_x = (random_float() - 0.5) * 2,
-            .thing.velocity_y = (random_float() - 0.5) * 2,
-            .thing.angle = 0,
-            .health = 50,
-            .thing.size = 60 + random_float() * 30,
-        };
-    }    
 }
 
 void init() {

@@ -59,6 +59,12 @@ void poll_input(){
     if(received_char != -1){
         //printf("received something: %d", received_char);
         if(received_char == GET_INPUTSTATE) {
+
+/*
+This is a bit of an annoying temporary hack to avoid stalls and desyncs with the input client.
+You should NOT have to send one byte at a time with an acknowledgement after every byte, but input handling was breaking before, so this is
+a temporary fix until I investigate the issue.         
+*/   
             uart_send(0x06); //ack value
 
             wait_msec(300);
